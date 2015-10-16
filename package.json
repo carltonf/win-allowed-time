@@ -1,0 +1,19 @@
+{
+  "name": "myproj",
+  "version": "0.0.1",
+  "description": "My Sample project",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+  },
+  "devDependencies": {
+    "mocha": "^2.3.3",
+    "node-skewer": "carltonf/node-skewer"
+  },
+  "scripts": {
+    "start": "node-skewer ./",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Carl Xiong <xiongc05@gmail.com>",
+  "license": "MIT"
+}
