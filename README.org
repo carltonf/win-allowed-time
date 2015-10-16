@@ -1,11 +1,6 @@
-Web Development Prototype
+Windows 7/8 style allowed time table
 ----------------
 
-* Usage
-In the directory you'd like to create your new web project.
-
-Then execute the following line in the terminal:
-: bash -c "$(wget -O - https://github.com/carltonf/webdev-prototype/raw/master/Init.sh)"
-
-You may need to input your project name, which will be your project root
-directory.
+Aim to provide a familiar way to pick allowed time frames for Windows 10 users,
+who wants to use =net= command to set up time limit instead of having to create
+an account for the "degraded" new parental control in Windows 10.

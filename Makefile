@@ -1,4 +1,4 @@
-VENDOR_MODULES :=
+VENDOR_MODULES := d3 jquery
 PORT ?= 3000
 APP_SRCS := src/*.js
 TEST_SCRIPT := node_modules/node-skewer/public/skewer.js
