@@ -1,3 +1,5 @@
+'use strict';
+
 var d3 = require('d3');
 var $ = require('jquery');
 
@@ -9,26 +11,6 @@ var TimeTile = function(wd, st){
 
 var tileGroup = [];
 
-var weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-var config = {
-  // ~hour
-  timeUnit: 1,
-
-  canvas: {
-    mt: 50,
-    ml: 50,
-  },
-  tile: {
-    w: 25,
-    h: 25,
-    mr: 1,
-    mb: 1,
-  },
-};
-
-config.colNums = Math.floor(24 / config.timeUnit);
-
 for(var i = 0; i < 7; i++){
   var weekTileGroup = [];
   for(var j = 0; j < config.colNums; j++){
@@ -36,8 +18,6 @@ for(var i = 0; i < 7; i++){
   }
   tileGroup.push(weekTileGroup);
 }
-
-/////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////
 // Interactivity
@@ -109,8 +89,13 @@ function getTiles2Group(startRect, endRect){
 // * Exports
 module.exports = {
   // TODO very crude implementation, modularize it for unit testing
-  create: function(){
-    var svgDraw = d3.select('#draw > svg'),
+  //
+  // svgSelector: a selector as understood by d3, the SVG element for drawing
+  // the whole grid.
+  //
+  // 
+  create: function(canvasSelector, gridConfigs){
+    var svgDraw = d3.select(svgSelector),
         svgCanvas = svgDraw
           .append('g')
           .attr('transform',
