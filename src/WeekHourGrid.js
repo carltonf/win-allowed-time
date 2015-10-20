@@ -6,6 +6,7 @@ var $ = require('jquery');
 // * Constants
 var WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// TODO support loading data from storage
 var dataGen = function(){
   function TimeTile(row, col, weekday, startTime){
     // index
@@ -95,11 +96,11 @@ module.exports = {
   // the whole grid.
   create: function(svgSelector, config){
     var svgDraw = d3.select(svgSelector),
-        svgCanvas = svgDraw
+        gridCanvas = svgDraw
           .append('g')
           .attr('transform',
                 'translate(' + config.canvas.ml + ', ' + config.canvas.mt + ')');
-
+    // ** Labels
     svgDraw
       .append('g')
       .attr('class', 'week-day-label')
@@ -109,11 +110,12 @@ module.exports = {
       .enter()
       .append('text')
       .text(function(d){ return d; })
-    // .attr('x', 0)
+      .attr('x', config.canvas.ml)
+      .attr('dx', '-1em')
       .attr('y', function(d, idx){ return (config.tile.h + config.tile.mb) * idx; })
-      .attr('dy', '1em');
+      .attr('dy', '1em')
+      .attr('text-anchor', 'end');
 
-    
     svgDraw
       .append('g')
       .attr('class', 'time-unit-label')
@@ -124,14 +126,11 @@ module.exports = {
       .append('text')
       .text(function(_,i){ return i;})
       .attr('text-anchor', 'middle')
-      .attr('dy', '-5')
-      // .attr('y', 0)
+      .attr('dy', '-7')
       .attr('x', function(_,i){ return (config.tile.w + config.tile.mr)* i; });
 
-
-    svgDraw.on('click', function(){ d3.event.preventDefault(); });
-
-    svgCanvas
+    // ** Create Grid
+    gridCanvas
       .append('g')
       .attr('class', 'tile-group-grid')
       .selectAll('g')
@@ -155,16 +154,16 @@ module.exports = {
           .classed('time-tile-selected', function(d){ return d.selected; });
       });
 
+    // ** Interactivity
 
-    
+    svgDraw.on('click', function(){ d3.event.preventDefault(); });
+
     // TODO check the event, decide actions, update UI, update model, all happen
     // within event handlers. The concrete actions on model should be decoupled using event.
     d3.selectAll('.tile-group-grid rect')
       .on('click.select', function(d, i){
         d3.select(this).classed('time-tile-selected',
                                 d.selected = !d.selected);
-
-        // console.log('click at: ' + d.weekdayID + ': ' + d.startTimeID);
       })
       .on('mousedown.grouping-start', function(d, i){
         if (d3.event.which != 1)
@@ -174,8 +173,6 @@ module.exports = {
 
         // Prevent the browser treating the svg elements as image (so no image drag)
         d3.event.preventDefault();
-
-        // console.log('mouse down: ' + d.weekdayID + ': ' + d.startTimeID);
       })
       .on('mouseenter.grouping-move', function(d, i){
         if (!grouping) return;
@@ -203,12 +200,12 @@ module.exports = {
         // memorize the current grouped tiles.
         grouping.$lastGroupedTiles = curGroupedTiles;
         grouping.endRect = d3.select(this);
-
-        // console.log('mouse enter: ' + d.weekdayID + ': ' + d.startTimeID);
       })
       .on('mouseup.grouping-end', groupingEndSync);
 
-    
+    // mouseup outside gridCanvas ends grouping to avoid pointer tangling
+    svgDraw.on('mouseup.grouping-end', groupingEndSync);
+
     // stop grouping when moving out the SVG area
     // TODO change the cursor shape to make this effect more obvious
     svgDraw.on('mouseleave.grouping-end', groupingEndSync);

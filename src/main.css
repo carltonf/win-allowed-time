@@ -1,6 +1,6 @@
-#draw {
-    border: 1px solid blue;
-    width: -moz-min-content;
+#draw > svg {
+  border: 2px solid darkgrey;
+  border-radius: 10px;
 }
 
 .time-tile {

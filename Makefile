@@ -6,6 +6,8 @@ ifneq ($(MAKECMDGOALS),dist)
 APP_SRCS := ${APP_SRCS} ${TEST_SCRIPT}
 endif
 
+.DELETE_ON_ERROR:
+
 # * Build
 DIR_GUARD = @mkdir -pv $(@D)
 
@@ -25,6 +27,7 @@ bundle/app.js: ${APP_SRCS}
 	@echo "** Bundling all app scripts..."
 	${DIR_GUARD}
 	@${BUNDLE_CMD} $^ ${VENDOR_MODULES:%=-x %} -o $@
+
 # * Test
 test: bundle
 	@echo ${APP_SRCS}
@@ -43,7 +46,8 @@ define WATCH_BUNDLE_TRIGGER
     "name": "make reload",
     "expression": ["anyof",
       ["match", "*.html"],
-      ["match", "src/**/*.js", "wholename"]
+      ["match", "src/**/*.js", "wholename"],
+      ["match", "src/**/*.*css", "wholename"]
     ],
     "command": [ "make", "reload", "PORT=${PORT}" ],
     "append_files": false
@@ -63,6 +67,7 @@ SSE_URL := http://localhost:${PORT}/node-skewer
 reload: bundle
 	@echo "** Reloading..."
 	@curl --silent --show-error "${SSE_URL}/notify?cmd=reload"
+
 # * Distribution
 dist:
 	@echo "Build distribution package: currently do NOTHING!"
