@@ -3,20 +3,32 @@
 var d3 = require('d3');
 var $ = require('jquery');
 
-var TimeTile = function(wd, st){
-  this.weekdayID = wd;
-  this.startTimeID = st;
-  this.selected = false;
-};
+// * Constants
+var WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-var tileGroup = [];
+var dataGen = function(){
+  function TimeTile(row, col, weekday, startTime){
+    // index
+    this.row = row;
+    this.col = col;
+    // descriptive string
+    this.weekdayID = weekday;
+    this.startTimeID = startTime;
 
-for(var i = 0; i < 7; i++){
-  var weekTileGroup = [];
-  for(var j = 0; j < config.colNums; j++){
-    weekTileGroup.push(new TimeTile(i, j));
+    this.selected = false;
+  };
+  
+  var tileGroup = [];
+  // 7x24
+  for(var i = 0; i < 7; i++){
+    var weekTileGroup = [];
+    for(var j = 0; j < 24; j++){
+      weekTileGroup.push(new TimeTile(i, j, WEEKDAYS[i], j));
+    }
+    tileGroup.push(weekTileGroup);
   }
-  tileGroup.push(weekTileGroup);
+
+  return tileGroup;
 }
 
 /////////////////////////////////////////////////////////////////
@@ -62,39 +74,26 @@ function groupingEndSync(){
 }
 
 // get jQuery collection of tiles to group with regards to startRect and endRect
-function getTiles2Group(startRect, endRect){
-  var weekDayExtent = d3.extent([startRect.weekdayID, endRect.weekdayID]),
-      timeExtent = d3.extent([startRect.startTimeID, endRect.startTimeID]),
+function $getTiles2Group(startRect, endRect){
+  var rowExtent = d3.extent([startRect.row, endRect.row]),
+      colExtent = d3.extent([startRect.col, endRect.col]),
       tiles = $();
 
-  $('.week-tile-group-grid').slice(weekDayExtent[0], weekDayExtent[1] + 1)
+  $('.week-tile-group-grid').slice(rowExtent[0], rowExtent[1] + 1)
     .each(function(){
       tiles = tiles.add(
-        $(this).children().slice(timeExtent[0], timeExtent[1] + 1)
+        $(this).children().slice(colExtent[0], colExtent[1] + 1)
       );
     });
 
   return tiles;
 }
 
-/////////////////////////////////////////////////////////////////
-//// About converting jQuery object into D3 selections:
-//
-// jQuery *Class family doesn't work with SVG, we can use attr though,
-// or update to jQuery 3.0 for now let's use d3.select.
-//
-// see http://stackoverflow.com/questions/8638621/jquery-svg-why-cant-i-addclass
-// for more details
-
 // * Exports
 module.exports = {
-  // TODO very crude implementation, modularize it for unit testing
-  //
   // svgSelector: a selector as understood by d3, the SVG element for drawing
   // the whole grid.
-  //
-  // 
-  create: function(canvasSelector, gridConfigs){
+  create: function(svgSelector, config){
     var svgDraw = d3.select(svgSelector),
         svgCanvas = svgDraw
           .append('g')
@@ -106,7 +105,7 @@ module.exports = {
       .attr('class', 'week-day-label')
       .attr('transform', 'translate(5, ' + config.canvas.mt + ')')
       .selectAll('text')
-      .data(weekDays)
+      .data(WEEKDAYS)
       .enter()
       .append('text')
       .text(function(d){ return d; })
@@ -120,11 +119,7 @@ module.exports = {
       .attr('class', 'time-unit-label')
       .attr('transform', 'translate(' + config.canvas.ml +', ' + config.canvas.mt + ')')
       .selectAll('text')
-      .data(
-        // create a sequence for time units
-        //Array.apply(null, Array(config.colNums)).map(function(_,i) { return i; })
-        Array(config.colNums)
-      )
+      .data( Array(24) )
       .enter()
       .append('text')
       .text(function(_,i){ return i;})
@@ -140,7 +135,7 @@ module.exports = {
       .append('g')
       .attr('class', 'tile-group-grid')
       .selectAll('g')
-      .data(tileGroup)
+      .data(dataGen())
       .enter()
       .append('g')
       .attr('class', 'week-tile-group-grid')
@@ -185,20 +180,11 @@ module.exports = {
       .on('mouseenter.grouping-move', function(d, i){
         if (!grouping) return;
 
-        var curGroupedTiles = getTiles2Group(grouping.startRect.datum(), d),
+        var curGroupedTiles = $getTiles2Group(grouping.startRect.datum(), d),
             lastGroupedTiles = grouping.$lastGroupedTiles,
             newlySelectedTiles = curGroupedTiles.not(lastGroupedTiles),
             newlyDeselectedTiles = lastGroupedTiles.not(curGroupedTiles);
 
-        // TODO about how to group
-        //
-        // 1. No grouping back. It's like painting brush, once a tile is touched it's
-        // selected, you can not move back.
-        //
-        // 2. Allow grouping back. Then it should restore the original state of
-        // newly deselected tiles. (currently I'm implementing this version)
-
-        // only update the necessary part
         // TODO make two-way data binding
         d3.selectAll(newlySelectedTiles.get())
           .classed({
@@ -208,10 +194,11 @@ module.exports = {
           });
 
         d3.selectAll(newlyDeselectedTiles.get())
-          .classed('time-tile-selecting', false)
-          .classed('time-tile-deselecting', false)
-          .classed('time-tile-selected', function(d){ return d.selected; });
-
+          .classed({
+            'time-tile-selecting': false,
+            'time-tile-deselecting': false,
+            'time-tile-selected': function(d){ return d.selected; }
+          });
 
         // memorize the current grouped tiles.
         grouping.$lastGroupedTiles = curGroupedTiles;
