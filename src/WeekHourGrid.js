@@ -6,52 +6,83 @@ var $ = require('jquery');
 // * Constants
 var WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// * Modal
 // TODO support loading data from storage
-var dataGen = function(){
-  function TimeTile(row, col, weekday, startTime){
-    // index
-    this.row = row;
-    this.col = col;
-    // descriptive string
-    this.weekdayID = weekday;
-    this.startTimeID = startTime;
+// ** Modal for every tile in the grid
+function TileModal(row, col, weekday, startTime){
+  // *** index
+  this.row = row;
+  this.col = col;
 
-    this.selected = false;
-  };
-  
-  var tileGroup = [];
-  // 7x24
-  for(var i = 0; i < 7; i++){
-    var weekTileGroup = [];
-    for(var j = 0; j < 24; j++){
-      weekTileGroup.push(new TimeTile(i, j, WEEKDAYS[i], j));
+  // *** a string representing the current week day.
+  this.weekdayID = weekday;
+  // *** a number depicting the beginning hour.
+  this.startTimeID = startTime;
+
+  // *** States of this tile
+  // - 'unselected': state non-selected, initial state.
+  // - 'selecting' : pending selection
+  // - 'selected'  : selected
+  this.state = 'unselected';
+
+  // *** DOM element for this modal
+  this.el = null;
+};
+
+// ** Modal for the whole grid
+// Row-based
+function GridModal (){
+  // *** grid holding a two-dimensional array (row-oriented) of TileModal
+  this.grid = dataGen();
+
+  function dataGen(){
+    var tileGroup = [];
+    // 7x24
+    for(var i = 0; i < 7; i++){
+      var weekTileGroup = [];
+      for(var j = 0; j < 24; j++){
+        weekTileGroup.push(new TileModal(i, j, WEEKDAYS[i], j));
+      }
+      tileGroup.push(weekTileGroup);
     }
-    tileGroup.push(weekTileGroup);
-  }
 
-  return tileGroup;
+    return tileGroup;
+  };
+
+
+  // *** state of the whole grid
+  // - "normal": default, nothing special
+  // - "grouping": the user is in the middle of grouping tiles
+  this.state = "normal";
+
+  // *** state data
+  // The correspond data associated with state
+  // - "normal": no data associated.
+  // - "grouping": an object of GroupingState
+  this.stateData = null;
 }
 
-/////////////////////////////////////////////////////////////////
-// Interactivity
+// ** data
+var gridData = new GridModal();
 
-var GroupingStatus = function(sr, er){
-  // startRect and endRect are D3 selections
-  this.startRect = sr;
-  this.endRect = er;
+// * Controllers
+var GroupingState = function(st, et){
+  // startTile and endTile are D3 selections
+  this.startTile = st;
+  this.endTile = et;
 
   // use the selected prop of the start tile to decide whether this grouping is
   // selecting or deselecting
   //
   // TODO a policy configuration: all (de)select or invert for every tile
   // (invert is the current implementation)
-
   this.$lastGroupedTiles = $();
 };
-var grouping = null;
 
+/////////////////////////////////////////////////////////////////
+// Interactivity
 function groupingEndSync(){
-  if (!grouping) return;
+  if (gridData.state != "grouping") return;
 
   d3.selectAll('.time-tile-selecting, .time-tile-deselecting')
     .each(function(d){
@@ -70,14 +101,14 @@ function groupingEndSync(){
       'time-tile-selected': false,
     });
 
-
-  grouping = null;
+  gridData.state = "normal";
+  gridData.stateData = null;
 }
 
-// get jQuery collection of tiles to group with regards to startRect and endRect
-function $getTiles2Group(startRect, endRect){
-  var rowExtent = d3.extent([startRect.row, endRect.row]),
-      colExtent = d3.extent([startRect.col, endRect.col]),
+// get jQuery collection of tiles to group with regards to startTile and endTile
+function $getTiles2Group(startTile, endTile){
+  var rowExtent = d3.extent([startTile.row, endTile.row]),
+      colExtent = d3.extent([startTile.col, endTile.col]),
       tiles = $();
 
   $('.week-tile-group-grid').slice(rowExtent[0], rowExtent[1] + 1)
@@ -134,7 +165,7 @@ module.exports = {
       .append('g')
       .attr('class', 'tile-group-grid')
       .selectAll('g')
-      .data(dataGen())
+      .data(gridData.grid)
       .enter()
       .append('g')
       .attr('class', 'week-tile-group-grid')
@@ -151,7 +182,9 @@ module.exports = {
           .attr('x', function(d){ return (config.tile.w + config.tile.mr ) * d.startTimeID; })
           .attr('width', config.tile.w)
           .attr('height', config.tile.h)
-          .classed('time-tile-selected', function(d){ return d.selected; });
+        // establish relationship between modal and view
+          .each(function(d){ d.el = this; })
+          // .classed('time-tile-selected', function(d){ return d.selected; });
       });
 
     // ** Interactivity
@@ -169,15 +202,17 @@ module.exports = {
         if (d3.event.which != 1)
           return;
 
-        grouping = new GroupingStatus(d3.select(this));
+        gridData.state = "grouping";
+        gridData.stateData = new GroupingState(d3.select(this), d3.select(this));
 
         // Prevent the browser treating the svg elements as image (so no image drag)
         d3.event.preventDefault();
       })
       .on('mouseenter.grouping-move', function(d, i){
-        if (!grouping) return;
+        if (gridData.state != "grouping") return;
+        var grouping = gridData.stateData;
 
-        var curGroupedTiles = $getTiles2Group(grouping.startRect.datum(), d),
+        var curGroupedTiles = $getTiles2Group(grouping.startTile.datum(), d),
             lastGroupedTiles = grouping.$lastGroupedTiles,
             newlySelectedTiles = curGroupedTiles.not(lastGroupedTiles),
             newlyDeselectedTiles = lastGroupedTiles.not(curGroupedTiles);
@@ -199,7 +234,7 @@ module.exports = {
 
         // memorize the current grouped tiles.
         grouping.$lastGroupedTiles = curGroupedTiles;
-        grouping.endRect = d3.select(this);
+        grouping.endTile = d3.select(this);
       })
       .on('mouseup.grouping-end', groupingEndSync);
 
