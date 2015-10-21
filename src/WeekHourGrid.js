@@ -25,7 +25,7 @@ function EventEmitter(){
 
     return this;
   };
-  
+
   this.emit = function(evt){
     if (!this.cbStore[evt])
       return;
@@ -41,12 +41,12 @@ function EventEmitter(){
 // * App
 // App is more or less the controller, also an event source serving as a message
 // hub.
-function App = function() {}
+function App() {}
 // ** Event supported
 // Each case the current tile DOM element is passed as the argument to the
 // callback
 // - 'toggle'
-// - 'grouping-start': 
+// - 'grouping-start':
 // - 'grouping-move':
 // - 'grouping-end':
 App.prototype = new EventEmitter();
@@ -128,30 +128,12 @@ function updateTileView(tile){
 }
 
 app
-  .on('toggle', function(tile){
-    var d3Tile = d3.select(tile),
-        data = d3Tile.datum();
-
-    switch(data.state){
-    case "selected":
-      data.state = "unselected";
-      break;
-    case "unselected":
-      data.state = "selected";
-      break;
-    default:
-      console.error("select event with invalid state: " + data.state);
-      return;
-    }
-
-    updateTileView(tile);
-  })
   .on('grouping-start', function(tile){
-    gridData.state = "grouping";
-    gridData.stateData = new GroupingState(d3.select(this), d3.select(this));
-
     var d3Tile = d3.select(tile),
         data = d3Tile.datum();
+
+    gridData.state = "grouping";
+    gridData.stateData = new GroupingState(data);
 
     switch(data.state){
     case "selected":
@@ -162,54 +144,119 @@ app
       break;
     default:
       console.error("grouping-start event with invalid state: " + data.state);
-      return;
     }
 
     updateTileView(tile);
   })
   .on('grouping-move', function(tile){
+    var d3Tile = d3.select(tile),
+        data = d3Tile.datum();
+
+    var groupState = gridData.stateData,
+        startTile = groupState.startTile;
+
+    function difference(arrOne, arrTwo){
+      return arrOne.filter(function(elm){ return (arrTwo.indexOf(elm) === -1); })
+    }
+
+    // modal
+    var curGroupedTiles = getTileGroup(startTile, data),
+        lastGroupedTiles = groupState.lastTileGroup,
+        newlySelectedTiles = difference(curGroupedTiles, lastGroupedTiles),
+        newlyDeselectedTiles = difference(lastGroupedTiles, curGroupedTiles);
+
+    newlySelectedTiles.forEach(function(data){
+      switch(data.state) {
+      case "selected":
+        data.state = "deselecting";
+        break;
+      case "unselected":
+        data.state = "selecting";
+        break;
+      default:
+        console.error("grouping-move event with invalid state for newly selected: " + data.state);
+      }
+
+      // view
+      updateTileView(data.el);
+    });
+
+    newlyDeselectedTiles.forEach(function(data){
+      switch(data.state) {
+      case "selecting":
+        data.state = "unselected";
+        break;
+      case "deselecting":
+        data.state = "selected";
+        break;
+      default:
+        console.error("grouping-move event with invalid state for newly deselected: " + data.state);
+      }
+
+      // view
+      updateTileView(data.el);
+    });
+
+    // update groupState.
+    groupState.lastTileGroup = curGroupedTiles;
+    groupState.endTile = data;
+  })
+  .on('grouping-end', function(){
     var groupState = gridData.stateData;
 
-    var curGroupedTiles = $getTiles2Group(groupState.startTile.datum(), d),
-        lastGroupedTiles = groupState.$lastGroupedTiles,
-        newlySelectedTiles = curGroupedTiles.not(lastGroupedTiles),
-        newlyDeselectedTiles = lastGroupedTiles.not(curGroupedTiles);
     // modal
-    
+    groupState.lastTileGroup.forEach(function(data){
+      switch(data.state) {
+      case "selecting":
+        data.state = "selected";
+        break;
+      case "deselecting":
+        data.state = "unselected";
+        break;
+      default:
+        console.error("grouping-end event with invalid state: " + data.state);
+      }
 
-    // view
-    d3.selectAll(newlySelectedTiles.get())
-      .classed({
-        'time-tile-selected': false,
-        'time-tile-selecting': function(d){ return !d.selected; },
-        'time-tile-deselecting': function(d){ return d.selected; },
-      });
+      // view
+      updateTileView(data.el);
+    })
 
-    d3.selectAll(newlyDeselectedTiles.get())
-      .classed({
-        'time-tile-selecting': false,
-        'time-tile-deselecting': false,
-        'time-tile-selected': function(d){ return d.selected; }
-      });
-
-    // memorize the current grouped tiles.
-    groupState.$lastGroupedTiles = curGroupedTiles;
-    groupState.endTile = d3.select(this);
+    // update gridData state
+    gridData.state = "normal";
+    gridData.stateData = null;
   });
 
+// a more generic function
+// arguments:
+// startTile(srow, scol) is the top-left tile
+// endTile(erow, ecol) is the bottom-right tile
+// return:
+// a flat ordered one-dimension array containing tiles
+function getTileGroup(startTile, endTile){
+  function extent(m, n){
+    return (m < n)?[m, n]:[n, m];
+  }
+  var srow = extent(startTile.row, endTile.row)[0],
+      erow = extent(startTile.row, endTile.row)[1],
+      scol = extent(startTile.col, endTile.col)[0],
+      ecol = extent(startTile.col, endTile.col)[1];
+
+  return gridData.grid.slice(srow, erow + 1).reduce(function(group, row){
+    return group.concat( row.slice(scol, ecol + 1) );
+  }, []);
+}
 
 // * Controllers
-var GroupingState = function(st, et){
-  // startTile and endTile are D3 selections
-  this.startTile = st;
-  this.endTile = et;
+var GroupingState = function(st){
+  // initializing has grouping always starts with single tile
+  this.endTile = this.startTile = st;
 
   // use the selected prop of the start tile to decide whether this grouping is
   // selecting or deselecting
   //
   // TODO a policy configuration: all (de)select or invert for every tile
   // (invert is the current implementation)
-  this.$lastGroupedTiles = $();
+  this.lastTileGroup = [this.startTile];
 };
 
 /////////////////////////////////////////////////////////////////
@@ -217,41 +264,7 @@ var GroupingState = function(st, et){
 function groupingEndSync(){
   if (gridData.state != "grouping") return;
 
-  d3.selectAll('.time-tile-selecting, .time-tile-deselecting')
-    .each(function(d){
-      d.selected = !d.selected;
-    });
-
-  d3.selectAll('.time-tile-selecting')
-    .classed({
-      'time-tile-selecting': false,
-      'time-tile-selected': true,
-    });
-
-  d3.selectAll('.time-tile-deselecting')
-    .classed({
-      'time-tile-deselecting': false,
-      'time-tile-selected': false,
-    });
-
-  gridData.state = "normal";
-  gridData.stateData = null;
-}
-
-// get jQuery collection of tiles to group with regards to startTile and endTile
-function $getTiles2Group(startTile, endTile){
-  var rowExtent = d3.extent([startTile.row, endTile.row]),
-      colExtent = d3.extent([startTile.col, endTile.col]),
-      tiles = $();
-
-  $('.week-tile-group-grid').slice(rowExtent[0], rowExtent[1] + 1)
-    .each(function(){
-      tiles = tiles.add(
-        $(this).children().slice(colExtent[0], colExtent[1] + 1)
-      );
-    });
-
-  return tiles;
+  app.emit('grouping-end', this);
 }
 
 // * Exports
@@ -324,15 +337,12 @@ module.exports = {
 
     svgDraw.on('click', function(){ d3.event.preventDefault(); });
 
-    // TODO check the event, decide actions, update UI, update model, all happen
-    // within event handlers. The concrete actions on model should be decoupled using event.
     d3.selectAll('.tile-group-grid rect')
-      .on('click.toggle', function(){
-        app.emit('toggle', this);
-      })
+    // simple click/toggle is a special case of grouping, which starts and ends
+    // at the same tile
       .on('mousedown.grouping-start', function(){
         var LEFT_MOUSE_BUTTON = 1;
-        if (d3.event.which != LEFT_MOUSE_BUTTON);
+        if (d3.event.which != LEFT_MOUSE_BUTTON)
           return;
 
         // Prevent the browser treating the svg elements as image (so no image
