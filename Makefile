@@ -1,4 +1,6 @@
 VENDOR_MODULES := d3 jquery
+NODE_INTERNAL_MODULES := events
+EXT_MODULES := ${VENDOR_MODULES} ${NODE_INTERNAL_MODULES}
 PORT ?= 3000
 APP_SRCS := src/*.js
 TEST_SCRIPT := node_modules/node-skewer/public/skewer.js
@@ -18,7 +20,7 @@ bundle-vendor: bundle/vendor.js
 bundle/vendor.js: ${VENDOR_MODULES:%=node_modules/%}
 	@echo "** Bundling all vendor modules..."
 	${DIR_GUARD}
-	@${BUNDLE_CMD} ${VENDOR_MODULES:%=-r %} -o $@
+	@${BUNDLE_CMD} ${EXT_MODULES:%=-r %} -o $@
 
 # TODO optionally we have app modules?
 
@@ -26,7 +28,7 @@ bundle-app: bundle/app.js
 bundle/app.js: ${APP_SRCS}
 	@echo "** Bundling all app scripts..."
 	${DIR_GUARD}
-	@${BUNDLE_CMD} $^ ${VENDOR_MODULES:%=-x %} -o $@
+	@${BUNDLE_CMD} $^ ${EXT_MODULES:%=-x %} -o $@
 
 # * Test
 test: bundle

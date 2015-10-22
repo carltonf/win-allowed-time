@@ -2,41 +2,10 @@
 
 var d3 = require('d3');
 var $ = require('jquery');
+var EventEmitter = require('events');
 
 // * Constants
 var WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-// * Minimalistic EventEmitter
-// TODO a proof-of-concept, migrate to Backbone in a later stage
-function EventEmitter(){
-  this.cbStore = {};
-
-  this.on = function(evt, cb){
-    this.cbStore[evt] = this.cbStore[evt] || [];
-    this.cbStore[evt].push(cb);
-
-    return this;
-  };
-
-  this.off = function(evt, cb){
-    var evtQueue = this.cbStore[evt];
-
-    delete evtQueue[ evtQueue.indexOf(cb) ];
-
-    return this;
-  };
-
-  this.emit = function(evt){
-    if (!this.cbStore[evt])
-      return;
-
-    var self = this;
-    var args = [].slice.call(arguments, 1);
-    this.cbStore[evt].forEach(function(cb){
-      cb.apply(self, args);
-    });
-  }
-}
 
 // * App
 // App is more or less the controller, also an event source serving as a message
@@ -55,64 +24,11 @@ App.prototype = new EventEmitter();
 var app = new App();
 
 // * Modal
-// TODO support loading data from storage
-// ** Modal for every tile in the grid
-function TileModal(row, col, weekday, startTime){
-  // *** index
-  this.row = row;
-  this.col = col;
+var GridModal = require('./GridModal');
 
-  // *** a string representing the current week day.
-  this.weekdayID = weekday;
-  // *** a number depicting the beginning hour.
-  this.startTimeID = startTime;
-
-  // *** States of this tile
-  // - 'unselected': state non-selected, initial state.
-  // - 'selecting' : selected while grouping
-  // - 'deselecting': deselected while grouping
-  // - 'selected'  : selected
-  this.state = 'unselected';
-
-  // *** DOM element for this modal
-  this.el = null;
-};
-
-// ** Modal for the whole grid
-// Row-based
-function GridModal (){
-  // *** grid holding a two-dimensional array (row-oriented) of TileModal
-  this.grid = dataGen();
-
-  function dataGen(){
-    var tileGroup = [];
-    // 7x24
-    for(var i = 0; i < 7; i++){
-      var weekTileGroup = [];
-      for(var j = 0; j < 24; j++){
-        weekTileGroup.push(new TileModal(i, j, WEEKDAYS[i], j));
-      }
-      tileGroup.push(weekTileGroup);
-    }
-
-    return tileGroup;
-  };
-
-
-  // *** state of the whole grid
-  // - "normal": default, nothing special
-  // - "grouping": the user is in the middle of grouping tiles
-  this.state = "normal";
-
-  // *** state data
-  // The correspond data associated with state
-  // - "normal": no data associated.
-  // - "grouping": an object of GroupingState
-  this.stateData = null;
-}
-
-// ** data
 var gridData = new GridModal();
+// DEBUG:
+window.gridData = gridData;
 
 // ** Data bound with App
 // FIX for now, view updates are conducted here as well, factor them out
@@ -135,16 +51,7 @@ app
     gridData.state = "grouping";
     gridData.stateData = new GroupingState(data);
 
-    switch(data.state){
-    case "selected":
-      data.state = "deselecting";
-      break;
-    case "unselected":
-      data.state = "selecting";
-      break;
-    default:
-      console.error("grouping-start event with invalid state: " + data.state);
-    }
+    data.stateTransfer('grouping');
 
     updateTileView(tile);
   })
@@ -160,38 +67,20 @@ app
     }
 
     // modal
-    var curGroupedTiles = getTileGroup(startTile, data),
+    var curGroupedTiles = gridData.getTileGroup(startTile, data),
         lastGroupedTiles = groupState.lastTileGroup,
         newlySelectedTiles = difference(curGroupedTiles, lastGroupedTiles),
         newlyDeselectedTiles = difference(lastGroupedTiles, curGroupedTiles);
 
     newlySelectedTiles.forEach(function(data){
-      switch(data.state) {
-      case "selected":
-        data.state = "deselecting";
-        break;
-      case "unselected":
-        data.state = "selecting";
-        break;
-      default:
-        console.error("grouping-move event with invalid state for newly selected: " + data.state);
-      }
+      data.stateTransfer('grouping');
 
       // view
       updateTileView(data.el);
     });
 
     newlyDeselectedTiles.forEach(function(data){
-      switch(data.state) {
-      case "selecting":
-        data.state = "unselected";
-        break;
-      case "deselecting":
-        data.state = "selected";
-        break;
-      default:
-        console.error("grouping-move event with invalid state for newly deselected: " + data.state);
-      }
+      data.stateTransfer('grouping');
 
       // view
       updateTileView(data.el);
@@ -206,16 +95,7 @@ app
 
     // modal
     groupState.lastTileGroup.forEach(function(data){
-      switch(data.state) {
-      case "selecting":
-        data.state = "selected";
-        break;
-      case "deselecting":
-        data.state = "unselected";
-        break;
-      default:
-        console.error("grouping-end event with invalid state: " + data.state);
-      }
+      data.stateTransfer('grouping-end');
 
       // view
       updateTileView(data.el);
@@ -225,26 +105,6 @@ app
     gridData.state = "normal";
     gridData.stateData = null;
   });
-
-// a more generic function
-// arguments:
-// startTile(srow, scol) is the top-left tile
-// endTile(erow, ecol) is the bottom-right tile
-// return:
-// a flat ordered one-dimension array containing tiles
-function getTileGroup(startTile, endTile){
-  function extent(m, n){
-    return (m < n)?[m, n]:[n, m];
-  }
-  var srow = extent(startTile.row, endTile.row)[0],
-      erow = extent(startTile.row, endTile.row)[1],
-      scol = extent(startTile.col, endTile.col)[0],
-      ecol = extent(startTile.col, endTile.col)[1];
-
-  return gridData.grid.slice(srow, erow + 1).reduce(function(group, row){
-    return group.concat( row.slice(scol, ecol + 1) );
-  }, []);
-}
 
 // * Controllers
 var GroupingState = function(st){
