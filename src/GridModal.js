@@ -86,6 +86,35 @@ function GridModal (){
     return self;
   }
 
+  // ** (de)serialize
+  // a compressed data format for serialization
+  //
+  // Serialized into an array of integers, each bit of which represents a single
+  // tile: 1 for selected, 0 for unselected.
+  this.serialize = serialize;
+  function serialize(){
+    var res = [],
+        bitmap = 0;
+
+    for(var i = 0; i < 7; i++){
+      bitmap = 0;
+      for(var j = 0; j < 24; j++){
+        bitmap += (self.grid[i][j].state === 'selected') ? (2 << j) : 0;
+      }
+
+      res.push(bitmap);
+    }
+
+    // build up a string
+    var resStr = "";
+    for(var i = 0; i < 7; i++){
+      bitmap = res[i].toString(2);
+      resStr += '0'.repeat(24 - bitmap.length) + bitmap + ' ';
+    }
+
+    return resStr;
+  }
+
   // ** states
   // *** state of the whole grid
   // - "normal": default, nothing special
