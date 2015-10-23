@@ -1,11 +1,9 @@
 'use strict';
 
-var d3 = require('d3');
-var $ = require('jquery');
-var EventEmitter = require('events');
-
-// * Constants
-var WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+var d3 = require('d3'),
+    $ = require('jquery'),
+    EventEmitter = require('events'),
+    WEEKDAYS = require('./commons').WEEKDAYS;
 
 // * App
 // App is more or less the controller, also an event source serving as a message
@@ -27,8 +25,7 @@ var app = new App();
 var GridModal = require('./GridModal');
 
 var gridData = new GridModal();
-// DEBUG:
-window.gridData = gridData;
+app.gridData = gridData;
 
 // ** Data bound with App
 // FIX for now, view updates are conducted here as well, factor them out
@@ -45,89 +42,36 @@ function updateTileView(tile){
 
 app
   .on('grouping-start', function(tile){
-    var d3Tile = d3.select(tile),
-        data = d3Tile.datum();
-
-    gridData.state = "grouping";
-    gridData.stateData = new GroupingState(data);
-
-    data.stateTransfer('grouping');
+    gridData.stateTransfer('grouping-start', d3.select(tile).datum());
 
     updateTileView(tile);
   })
   .on('grouping-move', function(tile){
-    var d3Tile = d3.select(tile),
-        data = d3Tile.datum();
+    gridData.stateTransfer('grouping-move', d3.select(tile).datum());
 
-    var groupState = gridData.stateData,
-        startTile = groupState.startTile;
-
-    function difference(arrOne, arrTwo){
-      return arrOne.filter(function(elm){ return (arrTwo.indexOf(elm) === -1); })
-    }
-
-    // modal
-    var curGroupedTiles = gridData.getTileGroup(startTile, data),
-        lastGroupedTiles = groupState.lastTileGroup,
-        newlySelectedTiles = difference(curGroupedTiles, lastGroupedTiles),
-        newlyDeselectedTiles = difference(lastGroupedTiles, curGroupedTiles);
-
-    newlySelectedTiles.forEach(function(data){
-      data.stateTransfer('grouping');
-
-      // view
-      updateTileView(data.el);
+    gridData.lastUpdatedTiles.forEach(function(tileData){
+      updateTileView(tileData.el);
     });
-
-    newlyDeselectedTiles.forEach(function(data){
-      data.stateTransfer('grouping');
-
-      // view
-      updateTileView(data.el);
-    });
-
-    // update groupState.
-    groupState.lastTileGroup = curGroupedTiles;
-    groupState.endTile = data;
   })
   .on('grouping-end', function(){
-    var groupState = gridData.stateData;
+    gridData.stateTransfer('grouping-end');
 
-    // modal
-    groupState.lastTileGroup.forEach(function(data){
-      data.stateTransfer('grouping-end');
-
-      // view
-      updateTileView(data.el);
-    })
-
-    // update gridData state
-    gridData.state = "normal";
-    gridData.stateData = null;
+    gridData.lastUpdatedTiles.forEach(function(tileData){
+      updateTileView(tileData.el);
+    });
   });
 
-// * Controllers
-var GroupingState = function(st){
-  // initializing has grouping always starts with single tile
-  this.endTile = this.startTile = st;
-
-  // use the selected prop of the start tile to decide whether this grouping is
-  // selecting or deselecting
-  //
-  // TODO a policy configuration: all (de)select or invert for every tile
-  // (invert is the current implementation)
-  this.lastTileGroup = [this.startTile];
-};
-
-/////////////////////////////////////////////////////////////////
-// Interactivity
 function groupingEndSync(){
   if (gridData.state != "grouping") return;
 
   app.emit('grouping-end', this);
 }
 
-// * Exports
+// * Global Exposure
+window.app = app
+
+
+// * Module Exports
 module.exports = {
   // svgSelector: a selector as understood by d3, the SVG element for drawing
   // the whole grid.
@@ -194,7 +138,6 @@ module.exports = {
       });
 
     // ** Interactivity
-
     svgDraw.on('click', function(){ d3.event.preventDefault(); });
 
     d3.selectAll('.tile-group-grid rect')

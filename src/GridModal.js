@@ -1,7 +1,7 @@
 // TODO support loading data from storage
 // * Constants
 // FIX this a constant duplicated in multiple places.
-var WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+var WEEKDAYS = require('./commons').WEEKDAYS;
 
 var TileModal = require('./TileModal');
 
@@ -25,18 +25,6 @@ function GridModal (){
 
     return tileGroup;
   };
-
-
-  // ** state of the whole grid
-  // - "normal": default, nothing special
-  // - "grouping": the user is in the middle of grouping tiles
-  this.state = "normal";
-
-  // ** state data
-  // The correspond data associated with state
-  // - "normal": no data associated.
-  // - "grouping": an object of GroupingState
-  this.stateData = null;
 
   // ** get tile group
   // Arguments:
@@ -97,8 +85,88 @@ function GridModal (){
 
     return self;
   }
+
+  // ** states
+  // *** state of the whole grid
+  // - "normal": default, nothing special
+  // - "grouping": the user is in the middle of grouping tiles
+  this.state = "normal";
+
+  // *** state data
+  // The correspond data associated with state
+  // - "normal": no data associated.
+  // - "grouping": an object of GroupingState
+  this.stateData = null;
+
+  // *** state transfer
+  // transfer this own state and corresponding tiles states
+  // args:
+  // - input: state events
+  // - tile: instanceof TileModal
+  this.stateTransfer = stateTransfer;
+  function stateTransfer(input, tile){
+    switch(input){
+    case "grouping-start":
+      self.state = "grouping";
+      self.stateData = new GroupingState(tile);
+
+      tile.stateTransfer('grouping');
+
+      self.lastUpdatedTiles = [tile];
+      break;
+    case "grouping-move":
+      var curTileGroup = self.getTileGroup(self.stateData.startTile, tile);
+      self.lastUpdatedTiles = xor(curTileGroup, self.stateData.lastTileGroup);
+
+      self.lastUpdatedTiles.forEach(function(tile){
+        tile.stateTransfer('grouping');
+      });
+
+      self.stateData.lastTileGroup = curTileGroup;
+      self.stateData.endTile = tile;
+      break;
+    case "grouping-end":
+      self.lastUpdatedTiles = [];
+
+      self.stateData.lastTileGroup.forEach(function(tile){
+        tile.stateTransfer('grouping-end');
+        self.lastUpdatedTiles.push(tile);
+      });
+
+      self.state = "normal";
+      self.stateData.stateData = null;
+      break;
+    default:
+    }
+  }
+
+  // *** tiles that most recently gets updated
+  this.lastUpdatedTiles = null;
 }
+
+function GroupingState(st){
+  // initializing has grouping always starts with single tile
+  this.endTile = this.startTile = st;
+
+  // use the selected prop of the start tile to decide whether this grouping is
+  // selecting or deselecting
+  //
+  // TODO a policy configuration: all (de)select or invert for every tile
+  // (invert is the current implementation)
+  this.lastTileGroup = [this.startTile];
+};
+
+// * helper
+// TODO underscore has _.difference
+function xor(arrOne, arrTwo){
+  return difference(arrOne, arrTwo).concat(
+    difference(arrTwo, arrOne)
+  );
+}
+function difference(arrOne, arrTwo){
+  return arrOne.filter(function(elm){ return (arrTwo.indexOf(elm) === -1); })
+}
+
 
 // * Module Export
 module.exports = GridModal;
-
