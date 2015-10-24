@@ -1,3 +1,40 @@
+/* sidebar */
+#sidebar {
+  float: left;
+  width: 100px;
+  height: 800px;
+  border-right: 1px solid darkgrey;
+  margin-right: 10px;
+}
+
+/* Script */
+#output {
+  margin-left: 110px;
+  position: relative;
+}
+
+#script-output {
+  display: inline-block;
+  width: 600px;
+  height: 400px;
+  border: 2px solid darkgrey;
+  border-radius: 10px;
+}
+
+/* controls */
+#controls {
+  display: inline-block;
+  width: 100px;
+  height: 400px;
+  border: 1px solid darkgrey;
+  border-radius: 10px;
+}
+
+/* Grid */
+#draw {
+  margin: 30px auto;
+}
+
 #draw > svg {
   border: 2px solid darkgrey;
   border-radius: 10px;

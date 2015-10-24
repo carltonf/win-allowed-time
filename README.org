@@ -4,3 +4,8 @@ Windows 7/8 style allowed time table
 Aim to provide a familiar way to pick allowed time frames for Windows 10 users,
 who wants to use =net= command to set up time limit instead of having to create
 an account for the "degraded" new parental control in Windows 10.
+
+* todo
+- [ ] Get rid of d3 dependency.
+- [ ] Local Storage
+- [ ] Optionally saved to 3rd repo/dropbox.

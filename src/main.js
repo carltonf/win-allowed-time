@@ -13,11 +13,17 @@ var config = {
     mr: 1,
     mb: 1,
   },
+
+  legend: {
+    w: 16,
+    h: 16,
+    mt: 36,
+  },
 };
 
 var svgConfig = {
   w: 715,
-  h: 235,
+  h: 300,
 };
 
 // * Create WeekHourGrid

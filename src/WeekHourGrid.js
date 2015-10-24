@@ -124,6 +124,42 @@ module.exports = {
       .attr('dy', '-7')
       .attr('x', function(_,i){ return (config.tile.w + config.tile.mr)* i; });
 
+    // ** Legends
+    var legends = svgDraw
+          .append('g')
+          .attr('class', 'grid-legends')
+          .attr('transform', 'translate('
+                + config.canvas.ml + ', '
+                + (config.canvas.mt + 7*(config.tile.h + config.tile.mb) + config.legend.mt)
+                + ')'),
+        singleLegend = legends.append('g');
+    singleLegend
+      .append('rect')
+      .attr('width', config.legend.w)
+      .attr('height', config.legend.h)
+      .attr('class', 'time-tile time-tile-selected');
+    singleLegend.append('text')
+      .text('Allowed')
+      .attr('x', config.legend.w)
+      .attr('dx', '7')
+      .attr('y', config.legend.h)
+      .attr('dy', '-2');
+    // second legend
+    singleLegend = legends
+      .append('g')
+      .attr('transform', 'translate('+ config.legend.w * 6.5 +',0)');
+    singleLegend.append('rect')
+      .attr('width', config.legend.w)
+      .attr('height', config.legend.h)
+      .attr('class', 'time-tile')
+    singleLegend.append('text')
+      .text('Forbidden')
+      .attr('x', config.legend.w)
+      .attr('dx', '7')
+      .attr('y', config.legend.h)
+      .attr('dy', '-2');
+
+
     // ** Create Grid
     gridCanvas
       .append('g')
