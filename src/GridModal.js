@@ -86,7 +86,7 @@ function GridModal (){
     return self;
   }
 
-  // ** (de)serialize
+  // ** serialize
   // a compressed data format for serialization
   //
   // Serialized into a string formated as "/time" field defined in
@@ -152,6 +152,9 @@ function GridModal (){
       .join(';');
   }
 
+
+  // ** deserialize
+  // the counterpart to "serialize"
 
   // ** states
   // *** state of the whole grid

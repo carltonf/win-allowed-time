@@ -164,6 +164,19 @@ describe('serialize: ', function(){
   });
 
   describe('edge cases: ', function(){
+    it('select nothing', function(){
+      assert.strictEqual(gridData.serialize(), '');
+    });
+
+    it('select all', function(){
+      gridData.grid.forEach(row =>
+                            row.forEach(tile =>
+                                        tile.state = 'selected'));
+
+      // FIX really should be 'all', but the compression part is not implemented yet
+      assert.strictEqual(gridData.serialize(), "M,0:00-24:00;T,0:00-24:00;W,0:00-24:00;Th,0:00-24:00;F,0:00-24:00;Sa,0:00-24:00;Su,0:00-24:00");
+    });
+
     it('select (0,0)', function(){
       gridData.grid[0][0].state = 'selected';
 
