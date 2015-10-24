@@ -8,8 +8,22 @@ var d3 = require('d3'),
 // * App
 // App is more or less the controller, also an event source serving as a message
 // hub.
-function App() {}
-// ** Event supported
+function App() {
+  var self = this;
+
+  // ** refresh the view for the whole grid.
+  // TODO have a view object and attach a callback to modal change event
+  this.refreshView = refreshView;
+  function refreshView(){
+    self.gridData.grid.forEach(function(row){
+      row.forEach(function(data){
+        updateTileView(data.el);
+      });
+    });
+  }
+
+}
+// ** Event support
 // Each case the current tile DOM element is passed as the argument to the
 // callback
 // - 'toggle'
