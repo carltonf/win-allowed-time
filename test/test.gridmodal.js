@@ -87,7 +87,6 @@ describe('getTileGroup: ', function(){
   });
 });
 
-
 describe('to/from JSON: ', function(){
   it('init to be all unselected', function(){
     gridData.toJSON().forEach(function(row){
@@ -140,4 +139,46 @@ describe('stateTransfer: ', function(){
       assert.strictEqual(gridData.state, 'normal');
     });
   })
+});
+
+describe('serialize: ', function(){
+  describe('normal cases: ', function(){
+    it('sample 1', function(){
+      var sample = require('./fixtures/serialize-sample1.js'),
+          json = sample.json,
+          expectation = sample.serialization;
+
+      gridData.fromJSON(json);
+
+      assert.strictEqual(gridData.serialize(), expectation);
+    });
+    it('sample 2', function(){
+      var sample = require('./fixtures/serialize-sample2.js'),
+          json = sample.json,
+          expectation = sample.serialization;
+
+      gridData.fromJSON(json);
+
+      assert.strictEqual(gridData.serialize(), expectation);
+    });
+  });
+
+  describe('edge cases: ', function(){
+    it('select (0,0)', function(){
+      gridData.grid[0][0].state = 'selected';
+
+      assert.strictEqual(gridData.serialize(), 'M,0:00-1:00');
+    });
+    it('select (0,23)', function(){
+      gridData.grid[0][23].state = 'selected';
+
+      assert.strictEqual(gridData.serialize(), 'M,23:00-24:00');
+    });
+
+    it('select all time on monday', function(){
+      gridData.grid[0].forEach(tile => tile.state = 'selected');
+
+      assert.strictEqual(gridData.serialize(), 'M,0:00-24:00');
+    });
+  });
 });

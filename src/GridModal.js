@@ -64,7 +64,7 @@ function GridModal (){
     // "restorep" is needed to avoid infinite recursion, if toJSON is corrupted
     var restorep = (fromJSON.caller === fromJSON),
         backup = null;
-    
+
     if(!restorep)
       backup = self.toJSON();
 
@@ -89,31 +89,73 @@ function GridModal (){
   // ** (de)serialize
   // a compressed data format for serialization
   //
-  // Serialized into an array of integers, each bit of which represents a single
-  // tile: 1 for selected, 0 for unselected.
+  // Serialized into a string formated as "/time" field defined in
+  // https://technet.microsoft.com/en-us/library/bb490718.aspx
   this.serialize = serialize;
   function serialize(){
     var res = [],
-        bitmap = 0;
+        ABBRS = require('./commons').WEEKDAY_ABBRS;
 
     for(var i = 0; i < 7; i++){
-      bitmap = 0;
+      var timeSlots = [],
+          // accumulate continuous allowed time slots
+          parseState = {
+            accuP: false,
+            startTimeID: null,
+          };
+
       for(var j = 0; j < 24; j++){
-        bitmap += (self.grid[i][j].state === 'selected') ? (2 << j) : 0;
+        var tile = self.grid[i][j];
+
+        switch(tile.state){
+        case 'selected':
+          if(!parseState.accuP){
+            parseState.accuP = true;
+            parseState.startTimeID = tile.startTimeID;
+          }
+          break;
+        case 'unselected':
+          if(parseState.accuP){
+            timeSlots.push({
+              startTimeID: parseState.startTimeID,
+              endTimeID: tile.startTimeID
+            });
+
+            parseState.accuP = false;
+            parseState.startTimeID = null;
+          }
+          break;
+        default:
+          throw new Error('Tile(' + tile.row + ', ' + tile.col + ') State: '
+                          + tile.state + ' is NOT valid for serialization!' );
+        }
+      }
+      // the last remaining slot
+      if(parseState.accuP){
+        timeSlots.push({
+          startTimeID: parseState.startTimeID,
+          endTimeID: 24,
+        });
       }
 
-      res.push(bitmap);
+      // use timeSlots to decide the formatted string
+      // timeSlots.forEach(function(slot){
+      //   dayTime += slot.startTimeID.toString() + ':00'
+      //     + '-' + slot.endTimeID.toString() + ':00' + ',';
+      // });
+      var dayTime = timeSlots.map(function(slot){
+        return (slot.startTimeID.toString() + ':00')
+          + '-' + (slot.endTimeID.toString() + ':00' );
+      }).join(',')
+
+      if(dayTime){
+        res.push(ABBRS[i] + ',' + dayTime);
+      }
     }
 
-    // build up a string
-    var resStr = "";
-    for(var i = 0; i < 7; i++){
-      bitmap = res[i].toString(2);
-      resStr += '0'.repeat(24 - bitmap.length) + bitmap + ' ';
-    }
-
-    return resStr;
+    return res.join(';');
   }
+
 
   // ** states
   // *** state of the whole grid
