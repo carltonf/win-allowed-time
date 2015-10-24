@@ -96,64 +96,60 @@ function GridModal (){
     var res = [],
         ABBRS = require('./commons').WEEKDAY_ABBRS;
 
-    for(var i = 0; i < 7; i++){
-      var timeSlots = [],
-          // accumulate continuous allowed time slots
-          parseState = {
-            accuP: false,
-            startTimeID: null,
-          };
+    // helper: return an array of time slot {startTimeID, endTimeID} pair
+    function getRowTimeSlots(row){
+      var inselected = false;
 
-      for(var j = 0; j < 24; j++){
-        var tile = self.grid[i][j];
-
+      // map is not appropriate as the array returned is shorter than the row.
+      return row.reduce(function(res, tile){
         switch(tile.state){
         case 'selected':
-          if(!parseState.accuP){
-            parseState.accuP = true;
-            parseState.startTimeID = tile.startTimeID;
+          if(!inselected){
+            inselected = true;
+            res.startTimeID = tile.startTimeID;
+
+            res.push({
+              startTimeID: tile.startTimeID,
+              // default to 24 to handle selected till end situation, e.g.
+              // 22:00-24:00
+              endTimeID: 24,
+            });
           }
           break;
         case 'unselected':
-          if(parseState.accuP){
-            timeSlots.push({
-              startTimeID: parseState.startTimeID,
-              endTimeID: tile.startTimeID
-            });
+          if(inselected){
+            // update the newest slot's end time.
+            res[res.length - 1].endTimeID = tile.startTimeID;
 
-            parseState.accuP = false;
-            parseState.startTimeID = null;
+            // prepare for next slot
+            inselected = false;
           }
           break;
         default:
           throw new Error('Tile(' + tile.row + ', ' + tile.col + ') State: '
                           + tile.state + ' is NOT valid for serialization!' );
         }
-      }
-      // the last remaining slot
-      if(parseState.accuP){
-        timeSlots.push({
-          startTimeID: parseState.startTimeID,
-          endTimeID: 24,
-        });
-      }
 
-      // use timeSlots to decide the formatted string
-      // timeSlots.forEach(function(slot){
-      //   dayTime += slot.startTimeID.toString() + ':00'
-      //     + '-' + slot.endTimeID.toString() + ':00' + ',';
-      // });
-      var dayTime = timeSlots.map(function(slot){
+        return res;
+      }, []);
+    }
+
+    return self.grid.reduce(function(res, row, idx){
+
+      var dayTime = getRowTimeSlots(row).map(function(slot){
         return (slot.startTimeID.toString() + ':00')
           + '-' + (slot.endTimeID.toString() + ':00' );
+
       }).join(',')
 
       if(dayTime){
-        res.push(ABBRS[i] + ',' + dayTime);
+        res.push(ABBRS[idx] + ',' + dayTime);
       }
-    }
 
-    return res.join(';');
+      return res;
+    }, [])
+    // only return a final string;
+      .join(';');
   }
 
 
