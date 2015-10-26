@@ -2,12 +2,12 @@ var $ = require('jquery');
 var WeekHourGrid = require('./WeekHourGrid');
 var configs = require('./configs');
 
-// * Create WeekHourGrid
 $(function(){
   $('svg')
     .attr('width', configs.svgConfig.w)
     .attr('height', configs.svgConfig.h);
 
+  // * Create WeekHourGrid
   var timeGrid = WeekHourGrid.create('#draw > svg', configs.gridConfig);
   console.log("Windows 7/8 Allowed Time Table loaded!");
 
@@ -36,7 +36,10 @@ $(function(){
         + timeStr.split(';').join(';^\n');
     }
 
-    $('textarea#script').val(res);
+    $('textarea#script')
+      .val(res)
+    // change the value of <textarea> would not trigger change.
+      .trigger('change');
   });
 
   $('button#edit').one('click', function(e){
@@ -47,29 +50,29 @@ $(function(){
     $('textarea#script').removeAttr('readonly');
   });
 
-  // TODO caching the blob url
-  var scriptBlobURL = null;
-  // the following doesn't work
-  // $('#textarea#script').on('input', function(){
-  //   if(scriptBlobURL){
-  //     window.URL.revokeObjectURL(blobURL);
-  //   }
-  // });
-  
+  // caching the blob download link
+  var $scriptDownloadLink = null;
+  $('textarea#script').on('change', function(){
+    if($scriptDownloadLink){
+      window.URL.revokeObjectURL( $scriptDownloadLink.attr('href') );
+      $scriptDownloadLink = null;
+    }
+  });
+
   $('button#download').click(function(){
-    if (scriptBlobURL){
-      window.URL.revokeObjectURL(scriptBlobURL);
+    if (!$scriptDownloadLink){
+      var scriptBlobURL = window.URL.createObjectURL(
+        new Blob([$('textarea#script').val()], {type: 'text/plain'})
+      );
+
+      $scriptDownloadLink = $('<a>')
+        .attr('href', scriptBlobURL)
+        .attr('download', 'allowedTime.bat');
     }
 
-    scriptBlobURL = window.URL.createObjectURL(
-      new Blob([$('textarea#script').val()], {type: 'text/plain'})
-    );
-
-    $('<a>').attr('href', scriptBlobURL)
-      .attr('download', 'allowedTime.bat')
-      .text('download script')
-    // get the DOM element to click, the jQuery one fails to initiate
-    // downloading
-    [0].click();
+    // get the DOM element to use HTMLElement.click, the jQuery.fn.click is to
+    // 'trigger' event, which would not work in this case as 'a' is not inserted
+    // into DOM.
+    $scriptDownloadLink[0].click();
   });
 });
