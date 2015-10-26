@@ -2,33 +2,42 @@ VENDOR_MODULES := d3 jquery
 NODE_INTERNAL_MODULES := events
 EXT_MODULES := ${VENDOR_MODULES} ${NODE_INTERNAL_MODULES}
 PORT ?= 3000
-APP_SRCS := src/*.js
+# single entry
+APP_SRCS := src/main.js
 TEST_SCRIPT := node_modules/node-skewer/public/skewer.js
 ifneq ($(MAKECMDGOALS),dist)
 APP_SRCS := ${APP_SRCS} ${TEST_SCRIPT}
 endif
+# single entry
+APP_STYLE_SRCS := src/main.*css
 
 .DELETE_ON_ERROR:
 
-# * Build
 DIR_GUARD = @mkdir -pv $(@D)
 
-BUNDLE_CMD := browserify --debug
+CSS_BUNDLE_CMD := sassc --sourcemap
+JS_BUNDLE_CMD := browserify --debug
+
+# * Build
+
 bundle: bundle-vendor bundle-app
 
 bundle-vendor: bundle/vendor.js
 bundle/vendor.js: ${VENDOR_MODULES:%=node_modules/%}
 	@echo "** Bundling all vendor modules..."
 	${DIR_GUARD}
-	@${BUNDLE_CMD} ${EXT_MODULES:%=-r %} -o $@
+	@${JS_BUNDLE_CMD} ${EXT_MODULES:%=-r %} -o $@
 
-# TODO optionally we have app modules?
-
-bundle-app: bundle/app.js
+bundle-app: bundle/app.js bundle/app.css
 bundle/app.js: ${APP_SRCS}
 	@echo "** Bundling all app scripts..."
 	${DIR_GUARD}
-	@${BUNDLE_CMD} $^ ${EXT_MODULES:%=-x %} -o $@
+	@${JS_BUNDLE_CMD} $^ ${EXT_MODULES:%=-x %} -o $@
+
+bundle/app.css: ${APP_STYLE_SRCS}
+	@echo "** Bundling all app styles..."
+	@${DIR_GUARD}
+	@${CSS_BUNDLE_CMD} $< $@
 
 # * Test
 test: bundle
