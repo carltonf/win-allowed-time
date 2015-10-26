@@ -46,4 +46,30 @@ $(function(){
 
     $('textarea#script').removeAttr('readonly');
   });
+
+  // TODO caching the blob url
+  var scriptBlobURL = null;
+  // the following doesn't work
+  // $('#textarea#script').on('input', function(){
+  //   if(scriptBlobURL){
+  //     window.URL.revokeObjectURL(blobURL);
+  //   }
+  // });
+  
+  $('button#download').click(function(){
+    if (scriptBlobURL){
+      window.URL.revokeObjectURL(scriptBlobURL);
+    }
+
+    scriptBlobURL = window.URL.createObjectURL(
+      new Blob([$('textarea#script').val()], {type: 'text/plain'})
+    );
+
+    $('<a>').attr('href', scriptBlobURL)
+      .attr('download', 'allowedTime.bat')
+      .text('download script')
+    // get the DOM element to click, the jQuery one fails to initiate
+    // downloading
+    [0].click();
+  });
 });
