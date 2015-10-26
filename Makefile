@@ -6,7 +6,7 @@ APP_ENTRY := src/main.js
 APP_SRCS := $(wildcard src/*.js)
 TEST_SCRIPT := node_modules/node-skewer/public/skewer.js
 ifneq ($(MAKECMDGOALS),dist)
-APP_SRCS := ${APP_SRCS} ${TEST_SCRIPT}
+APP_ENTRY := ${APP_ENTRY} ${TEST_SCRIPT}
 endif
 APP_STYLE_ENTRY := src/main.scss
 APP_STYLE_SRCS := $(wildcard src/*.css src/*.scss)

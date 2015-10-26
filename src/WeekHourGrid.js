@@ -22,6 +22,16 @@ function App() {
     });
   }
 
+  // ** Reset the whole grid both modal and view
+  this.reset = reset;
+  function reset(){
+    self.gridData.grid.forEach(function(row){
+      row.forEach(function(data){
+        data.state = 'unselected';
+        updateTileView(data.el);
+      });
+    });
+  }
 }
 // ** Event support
 // Each case the current tile DOM element is passed as the argument to the
@@ -38,8 +48,7 @@ var app = new App();
 // * Modal
 var GridModal = require('./GridModal');
 
-var gridData = new GridModal();
-app.gridData = gridData;
+app.gridData = new GridModal();
 
 // ** Data bound with App
 // FIX for now, view updates are conducted here as well, factor them out
@@ -56,34 +65,34 @@ function updateTileView(tile){
 
 app
   .on('grouping-start', function(tile){
-    gridData.stateTransfer('grouping-start', d3.select(tile).datum());
+    this.gridData.stateTransfer('grouping-start', d3.select(tile).datum());
 
     updateTileView(tile);
   })
   .on('grouping-move', function(tile){
-    gridData.stateTransfer('grouping-move', d3.select(tile).datum());
+    this.gridData.stateTransfer('grouping-move', d3.select(tile).datum());
 
-    gridData.lastUpdatedTiles.forEach(function(tileData){
+    this.gridData.lastUpdatedTiles.forEach(function(tileData){
       updateTileView(tileData.el);
     });
   })
   .on('grouping-end', function(){
-    gridData.stateTransfer('grouping-end');
+    this.gridData.stateTransfer('grouping-end');
 
-    gridData.lastUpdatedTiles.forEach(function(tileData){
+    this.gridData.lastUpdatedTiles.forEach(function(tileData){
       updateTileView(tileData.el);
     });
   });
 
 function groupingEndSync(){
-  if (gridData.state != "grouping") return;
+  if (app.gridData.state != "grouping") return;
 
   app.emit('grouping-end', this);
 }
 
 // * Global Exposure
+// TODO should NOT be globally exposed
 window.app = app
-
 
 // * Module Exports
 module.exports = {
@@ -165,7 +174,7 @@ module.exports = {
       .append('g')
       .attr('class', 'tile-group-grid')
       .selectAll('g')
-      .data(gridData.grid)
+      .data(app.gridData.grid)
       .enter()
       .append('g')
       .attr('class', 'week-tile-group-grid')
@@ -205,7 +214,7 @@ module.exports = {
         app.emit('grouping-start', this);
       })
       .on('mouseenter.grouping-move', function(d, i){
-        if (gridData.state != "grouping") return;
+        if (app.gridData.state != "grouping") return;
 
         app.emit('grouping-move', this);
       })
@@ -217,5 +226,8 @@ module.exports = {
     // stop grouping when moving out the SVG area
     // TODO change the cursor shape to make this effect more obvious
     svgDraw.on('mouseleave.grouping-end', groupingEndSync);
+
+    // return app
+    return app;
   },
 };
