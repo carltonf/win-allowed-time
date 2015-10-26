@@ -4,12 +4,12 @@
   /* position: relative; */
 }
 
-#script-output {
+#script {
   float: left;
   width: 80%;
   height: 400px;
   border: 2px solid darkgrey;
-  border-radius: 10px;
+  resize: none;
 }
 
 /* controls */

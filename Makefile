@@ -2,14 +2,14 @@ VENDOR_MODULES := d3 jquery
 NODE_INTERNAL_MODULES := events
 EXT_MODULES := ${VENDOR_MODULES} ${NODE_INTERNAL_MODULES}
 PORT ?= 3000
-# single entry
-APP_SRCS := src/main.js
+APP_ENTRY := src/main.js
+APP_SRCS := $(wildcard src/*.js)
 TEST_SCRIPT := node_modules/node-skewer/public/skewer.js
 ifneq ($(MAKECMDGOALS),dist)
 APP_SRCS := ${APP_SRCS} ${TEST_SCRIPT}
 endif
-# single entry
-APP_STYLE_SRCS := src/main.*css
+APP_STYLE_ENTRY := src/main.scss
+APP_STYLE_SRCS := $(wildcard src/*.css src/*.scss)
 
 .DELETE_ON_ERROR:
 
@@ -32,12 +32,12 @@ bundle-app: bundle/app.js bundle/app.css
 bundle/app.js: ${APP_SRCS}
 	@echo "** Bundling all app scripts..."
 	${DIR_GUARD}
-	@${JS_BUNDLE_CMD} $^ ${EXT_MODULES:%=-x %} -o $@
+	@${JS_BUNDLE_CMD} ${APP_ENTRY} ${EXT_MODULES:%=-x %} -o $@
 
 bundle/app.css: ${APP_STYLE_SRCS}
 	@echo "** Bundling all app styles..."
 	@${DIR_GUARD}
-	@${CSS_BUNDLE_CMD} $< $@
+	@${CSS_BUNDLE_CMD} ${APP_STYLE_ENTRY} $@
 
 # * Test
 test: bundle
