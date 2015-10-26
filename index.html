@@ -16,16 +16,19 @@
       </div>
       <div id="output">
         <textarea id="script" readonly maxlength="1024"
-                  >net user UserName /time:
-        </textarea>
+                  spellcheck="false"
+                  >net user UserName /time:</textarea>
         <div id="controls">
+          <!-- TODO verify the validity -->
+          <input id="username" placeholder="user name.."/>
+
           <button id="reset-grid">Reset</button>
           <!-- Undo totally optional -->
           <button>Undo</button>
           <hr />
-          <button>Get Script</button>
-          <button>Edit</button>
-          <button>Download</button>
+          <button id="get-script">Get Script</button>
+          <button id="edit">Edit</button>
+          <button id="download">Download</button>
         </div>
       </div>
     </main>
