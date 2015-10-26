@@ -23,7 +23,11 @@ $(function(){
     $('textarea#script').val(getPrefixStr());
   });
 
-  $('button#get-script').click(function(){
+  $('input#username').change(updateScript);
+
+  $('#draw>svg g.tile-group-grid').mouseup(updateScript);
+
+  function updateScript(){
     var timeStr = timeGrid.gridData.serialize(),
         prefixStr = getPrefixStr(),
         res = "";
@@ -40,7 +44,9 @@ $(function(){
       .val(res)
     // change the value of <textarea> would not trigger change.
       .trigger('change');
-  });
+  }
+
+  $('button#get-script').click(updateScript);
 
   $('button#edit').one('click', function(e){
     $(this)
