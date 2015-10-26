@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 /* sidebar */
 #sidebar {
   float: left;
@@ -7,15 +11,21 @@
   margin-right: 10px;
 }
 
+main {
+  float: left;
+  width: 720px;
+}
+
 /* Script */
 #output {
-  margin-left: 110px;
-  position: relative;
+  width: 100%;
+  /* margin-left: 110px; */
+  /* position: relative; */
 }
 
 #script-output {
-  display: inline-block;
-  width: 600px;
+  float: left;
+  width: 80%;
   height: 400px;
   border: 2px solid darkgrey;
   border-radius: 10px;
@@ -23,11 +33,15 @@
 
 /* controls */
 #controls {
-  display: inline-block;
-  width: 100px;
+  float: left;
+  width: 19%;
   height: 400px;
   border: 1px solid darkgrey;
-  border-radius: 10px;
+  margin-left: 5px;
+}
+
+#controls > button {
+  width: 100%;
 }
 
 /* Grid */
