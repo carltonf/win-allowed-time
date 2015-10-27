@@ -68,7 +68,12 @@ $(function(){
   $('button#download').click(function(){
     if (!$scriptDownloadLink){
       var scriptBlobURL = window.URL.createObjectURL(
-        new Blob([$('textarea#script').val()], {type: 'text/plain'})
+        // The API value has undergoes some transformation to have all CR
+        // replaced with LF or ignored. To have windows CRLF style line
+        // breaking, manually transform the string. For more details, see
+        // https://html.spec.whatwg.org/multipage/forms.html#concept-textarea-api-value
+        new Blob([$('textarea#script').val().split('\n').join('\r\n')],
+                 {type: 'text/plain'})
       );
 
       $scriptDownloadLink = $('<a>')
