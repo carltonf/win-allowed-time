@@ -5,10 +5,10 @@ var d3 = require('d3'),
     EventEmitter = require('events'),
     WEEKDAYS = require('./commons').WEEKDAYS;
 
-// * App
-// App is more or less the controller, also an event source serving as a message
+// * TimeGrid
+// TimeGrid is more or less the controller, also an event source serving as a message
 // hub.
-function App() {
+function TimeGrid() {
   var self = this;
 
   // ** refresh the view for the whole grid.
@@ -40,17 +40,17 @@ function App() {
 // - 'grouping-start':
 // - 'grouping-move':
 // - 'grouping-end':
-App.prototype = new EventEmitter();
+TimeGrid.prototype = new EventEmitter();
 
 // ** globally exposed
-var app = new App();
+var timeGrid = new TimeGrid();
 
 // * Modal
 var GridModal = require('./GridModal');
 
-app.gridData = new GridModal();
+timeGrid.gridData = new GridModal();
 
-// ** Data bound with App
+// ** Data bound with timeGrid
 // FIX for now, view updates are conducted here as well, factor them out
 function updateTileView(tile){
   var d3Tile = d3.select(tile),
@@ -63,7 +63,7 @@ function updateTileView(tile){
   });
 }
 
-app
+timeGrid
   .on('grouping-start', function(tile){
     this.gridData.stateTransfer('grouping-start', d3.select(tile).datum());
 
@@ -85,14 +85,11 @@ app
   });
 
 function groupingEndSync(){
-  if (app.gridData.state != "grouping") return;
+  if (timeGrid.gridData.state != "grouping") return;
 
-  app.emit('grouping-end', this);
+  timeGrid.emit('grouping-end', this);
 }
 
-// * Global Exposure
-// TODO should NOT be globally exposed
-window.app = app
 
 // * Module Exports
 module.exports = {
@@ -174,7 +171,7 @@ module.exports = {
       .append('g')
       .attr('class', 'tile-group-grid')
       .selectAll('g')
-      .data(app.gridData.grid)
+      .data(timeGrid.gridData.grid)
       .enter()
       .append('g')
       .attr('class', 'week-tile-group-grid')
@@ -211,12 +208,12 @@ module.exports = {
         // drag)
         d3.event.preventDefault();
 
-        app.emit('grouping-start', this);
+        timeGrid.emit('grouping-start', this);
       })
       .on('mouseenter.grouping-move', function(d, i){
-        if (app.gridData.state != "grouping") return;
+        if (timeGrid.gridData.state != "grouping") return;
 
-        app.emit('grouping-move', this);
+        timeGrid.emit('grouping-move', this);
       })
       .on('mouseup.grouping-end', groupingEndSync);
 
@@ -227,7 +224,7 @@ module.exports = {
     // TODO change the cursor shape to make this effect more obvious
     svgDraw.on('mouseleave.grouping-end', groupingEndSync);
 
-    // return app
-    return app;
+    // return timeGrid
+    return timeGrid;
   },
 };
