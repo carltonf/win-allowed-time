@@ -20,7 +20,10 @@
                   >net user UserName /time:</textarea>
         <div id="controls">
           <!-- TODO verify the validity -->
-          <input id="username" placeholder="user name.."/>
+          <input id="username"
+                 list="savedUserNames" autocomplete="off"
+                 placeholder="user name.."/>
+          <datalist id="savedUserNames"></datalist>
 
           <button id="reset-grid">Reset</button>
           <hr />

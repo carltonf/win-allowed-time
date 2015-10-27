@@ -1,7 +1,8 @@
 // Page Controls
-// 
-// This module exports nothing. Require it directly in the "main" to have
-// controls setup.
+//
+// Require it directly in the "main" to have controls setup.
+// TODO modularize this one
+//
 
 var $ = require('jquery');
 var timeGrid = app.timeGrid;
@@ -14,17 +15,22 @@ function getPrefixStr(){
 }
 
 // * Reset
-$('button#reset-grid').click(function(){
+exports.reset = reset;
+function reset(){
   timeGrid.reset();
-  $('textarea#script').val(getPrefixStr());
-});
+  $('textarea#script')
+    .val(getPrefixStr())
+    .trigger('change');
+}
+$('button#reset-grid').click(reset);
 
 // * User Name
-$('input#username').change(updateScript);
+// $('input#username').change(updateScript);
 
 // * Script Text Area
 $('#draw>svg g.tile-group-grid').mouseup(updateScript);
 
+exports.updateScript = updateScript;
 function updateScript(){
   var timeStr = timeGrid.gridData.serialize(),
       prefixStr = getPrefixStr(),

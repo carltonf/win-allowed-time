@@ -29,6 +29,20 @@ function TimeGrid() {
 
     self.refreshView();
   }
+
+  // ** serialization: save the data that should persist
+  this.serialize = serialize;
+  function serialize(){
+    return self.gridData.serialize();
+  }
+
+  // ** deserialize
+  this.deserialize = deserialize;
+  function deserialize(str){
+    self.gridData.deserialize(str);
+
+    self.refreshView();
+  }
 }
 // ** Event support
 // Each case the current tile DOM element is passed as the argument to the
