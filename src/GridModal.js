@@ -1,7 +1,8 @@
 // TODO support loading data from storage
 // * Constants
 // FIX this a constant duplicated in multiple places.
-var WEEKDAYS = require('./commons').WEEKDAYS;
+var WEEKDAYS = require('./commons').WEEKDAYS,
+    WD_ABBRS = require('./commons').WEEKDAY_ABBRS;
 
 var TileModal = require('./TileModal');
 
@@ -93,8 +94,7 @@ function GridModal (){
   // https://technet.microsoft.com/en-us/library/bb490718.aspx
   this.serialize = serialize;
   function serialize(){
-    var res = [],
-        ABBRS = require('./commons').WEEKDAY_ABBRS;
+    var res = [];
 
     // helper: return an array of time slot {startTimeID, endTimeID} pair
     function getRowTimeSlots(row){
@@ -143,7 +143,7 @@ function GridModal (){
       }).join(',')
 
       if(dayTime){
-        res.push(ABBRS[idx] + ',' + dayTime);
+        res.push(WD_ABBRS[idx] + ',' + dayTime);
       }
 
       return res;
@@ -152,9 +152,44 @@ function GridModal (){
       .join(';');
   }
 
-
   // ** deserialize
   // the counterpart to "serialize"
+  this.deserialize = deserialize;
+  function deserialize(serialization){
+    // reset the whole grid
+    self.reset();
+
+    serialization.split(';').forEach(function(dayStr){
+      var row = null,
+          slotStrs = dayStr.split(',');
+
+      row = self.grid[ WD_ABBRS.indexOf(slotStrs[0]) ];
+      slotStrs.slice(1).forEach(function(timePeriod){
+        var slot = /(\d+):00-(\d+):00/.exec(timePeriod).slice(1,3)
+        // PITFALL: remember to convert to number! "7" < "12" is true!
+        //
+        // if use parseInt, notes that it accepts a second arg "radix"
+          .map(Number);
+
+        for(var i = slot[0]; i < slot[1]; i++){
+          row[i].state = 'selected';
+        }
+      });
+    });
+
+    // return gridModal itself
+    return this;
+  }
+
+  // ** reset
+  this.reset = reset;
+  function reset(){
+    self.grid.forEach(function(row){
+      row.forEach(function(data){
+        data.state = 'unselected';
+      });
+    });
+  }
 
   // ** states
   // *** state of the whole grid

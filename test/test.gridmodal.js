@@ -143,24 +143,18 @@ describe('stateTransfer: ', function(){
 
 describe('serialize: ', function(){
   describe('normal cases: ', function(){
-    it('sample 1', function(){
-      var sample = require('./fixtures/serialize-sample1.js'),
-          json = sample.json,
-          expectation = sample.serialization;
+    for(var samplePath of ['./fixtures/serialize-sample1.js',
+                           './fixtures/serialize-sample2.js']){
+      it(samplePath, function(){
+        var sample = require(samplePath),
+            json = sample.json,
+            expectation = sample.serialization;
 
-      gridData.fromJSON(json);
+        gridData.fromJSON(json);
 
-      assert.strictEqual(gridData.serialize(), expectation);
-    });
-    it('sample 2', function(){
-      var sample = require('./fixtures/serialize-sample2.js'),
-          json = sample.json,
-          expectation = sample.serialization;
-
-      gridData.fromJSON(json);
-
-      assert.strictEqual(gridData.serialize(), expectation);
-    });
+        assert.strictEqual(gridData.serialize(), expectation);
+      });
+    }
   });
 
   describe('edge cases: ', function(){
@@ -195,3 +189,103 @@ describe('serialize: ', function(){
     });
   });
 });
+
+describe('deserialize: ', function(){
+  describe('normal cases: ', function(){
+    for(var samplePath of ['./fixtures/serialize-sample1.js',
+                           './fixtures/serialize-sample2.js']){
+      it(samplePath, function(){
+        var sample = require(samplePath),
+            serialization = sample.serialization,
+            expectation = sample.json,
+            actual = null;
+
+        gridData.deserialize(serialization);
+
+        actual = gridData.toJSON();
+
+        for(var i = 0; i < 7; i++){
+          for(var j = 0; j < 23; j++)
+            assert.strictEqual(actual[i][j].state, expectation[i][j].state,
+                              `works for (${i}, ${j})`);
+        }
+
+      });
+    }
+
+    // This test is added to check whether we've forgotten to convert the time
+    // string to number.
+    it('M,7:00-13:00; note as string ("7" > "13") is true!!!', function(){
+      var serialization = 'M,7:00-13:00';
+
+      gridData.deserialize(serialization);
+
+      gridData.grid[0].forEach((tile, i) => assert.strictEqual(
+        tile.state,
+        ((7 <= i) && (i < 13)) ? 'selected' : 'unselected',
+        `Monday, works for ${i}.`));
+    });
+
+    it('simple one day two periods', function(){
+      var serialization = 'Th,0:00-3:00,15:00-20:00';
+
+      gridData.deserialize(serialization);
+
+      gridData.grid[3].forEach(
+        (tile, i) => assert.strictEqual(tile.state,
+                                        ((0 <= i)&&(i < 3) || (15 <= i)&&(i < 20))
+                                        ? 'selected' : 'unselected',
+                                        `works at ${i}`));
+    });
+
+    it('simple two days one period each', function(){
+      var serialization = 'Th,0:00-3:00;Su,15:00-20:00';
+
+      gridData.deserialize(serialization);
+
+      gridData.grid[3].forEach((tile, i) =>
+                          assert.strictEqual(tile.state,
+                                             (0 <= i)&&(i < 3)
+                                             ? 'selected' : 'unselected',
+                                             `Thursday, works at ${i}`));
+      gridData.grid[6].forEach((tile, i) =>
+                               assert.strictEqual(tile.state,
+                                                  (15 <= i)&&(i < 20)
+                                                  ? 'selected' : 'unselected',
+                                                  `Sunday, works at ${i}`));
+    });
+  });
+
+  describe('edge cases: ', function(){
+    it('all blocked', function(){
+      var serialization = '';
+
+      gridData.deserialize(serialization);
+
+      gridData.grid.forEach(row =>
+                            row.forEach(tile => assert.strictEqual(tile.state, 'unselected')));
+    });
+    it('all allowed', function(){
+      var serialization = "M,0:00-24:00;T,0:00-24:00;W,0:00-24:00;Th,0:00-24:00;F,0:00-24:00;Sa,0:00-24:00;Su,0:00-24:00";
+
+      gridData.deserialize(serialization);
+
+      gridData.grid.forEach(row =>
+                            row.forEach(tile => assert.strictEqual(tile.state, 'selected')));
+    });
+    it('M,0:00-1:00', function(){
+      var serialization = 'M,0:00-1:00'
+
+      gridData.deserialize(serialization);
+
+      assert.strictEqual(gridData.grid[0][0].state, 'selected');
+    });
+    it('Su,23:00-24:00', function(){
+      var serialization = 'Su,23:00-24:00';
+
+      gridData.deserialize(serialization);
+
+      assert.strictEqual(gridData.grid[6][23].state, 'selected');
+    });
+  });
+})

@@ -25,12 +25,9 @@ function TimeGrid() {
   // ** Reset the whole grid both modal and view
   this.reset = reset;
   function reset(){
-    self.gridData.grid.forEach(function(row){
-      row.forEach(function(data){
-        data.state = 'unselected';
-        updateTileView(data.el);
-      });
-    });
+    self.gridData.reset();
+
+    self.refreshView();
   }
 }
 // ** Event support
