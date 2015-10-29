@@ -1,6 +1,6 @@
 # Generated
 bundle/
-
+dist/
 
 # vendor modules
 node_modules/

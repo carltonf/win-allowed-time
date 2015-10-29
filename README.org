@@ -5,7 +5,9 @@ Aim to provide a familiar way to pick allowed time frames for Windows 10 users,
 who wants to use =net= command to set up time limit instead of having to create
 an account for the "degraded" new parental control in Windows 10.
 
+An alpha version is available at [[http://carltonf.github.io/win-allowed-time/][win-allowed-time]]. The main functionality should work.
+
 * todo
+- [ ] Modularize Event and listeners part.
 - [ ] Get rid of d3 dependency.
-- [ ] Local Storage
-- [ ] Optionally saved to 3rd repo/dropbox.
+- [ ] Optionally save user settings to 3rd repo/dropbox.

@@ -5,18 +5,29 @@ PORT ?= 3000
 APP_ENTRY := src/main.js
 APP_SRCS := $(wildcard src/*.js)
 TEST_SCRIPT := node_modules/node-skewer/public/skewer.js
-ifneq ($(MAKECMDGOALS),dist)
-APP_ENTRY := ${APP_ENTRY} ${TEST_SCRIPT}
-endif
 APP_STYLE_ENTRY := src/main.scss
 APP_STYLE_SRCS := $(wildcard src/*.css src/*.scss)
+
+DIST_SRCS := index.html bundle/
 
 .DELETE_ON_ERROR:
 
 DIR_GUARD = @mkdir -pv $(@D)
 
-CSS_BUNDLE_CMD := sassc --sourcemap
-JS_BUNDLE_CMD := browserify --debug
+CSS_BUNDLE_CMD := sassc
+JS_BUNDLE_CMD := browserify
+JS_COMPRESS_CMD :=
+
+# * Dist flags setup
+ifneq ($(MAKECMDGOALS),dist)
+APP_ENTRY := ${APP_ENTRY} ${TEST_SCRIPT}
+CSS_BUNDLE_CMD := ${CSS_BUNDLE_CMD} --sourcemap
+JS_BUNDLE_CMD := ${JS_BUNDLE_CMD}  --debug
+# dist flags
+else
+CSS_BUNDLE_CMD := ${CSS_BUNDLE_CMD} --style compressed
+JS_COMPRESS_CMD := | uglifyjs - --compress
+endif
 
 # * Build
 
@@ -26,13 +37,13 @@ bundle-vendor: bundle/vendor.js
 bundle/vendor.js: ${VENDOR_MODULES:%=node_modules/%}
 	@echo "** Bundling all vendor modules..."
 	${DIR_GUARD}
-	@${JS_BUNDLE_CMD} ${EXT_MODULES:%=-r %} -o $@
+	@${JS_BUNDLE_CMD} ${EXT_MODULES:%=-r %} ${JS_COMPRESS_CMD} > $@
 
 bundle-app: bundle/app.js bundle/app.css
 bundle/app.js: ${APP_SRCS}
 	@echo "** Bundling all app scripts..."
 	${DIR_GUARD}
-	@${JS_BUNDLE_CMD} ${APP_ENTRY} ${EXT_MODULES:%=-x %} -o $@
+	@${JS_BUNDLE_CMD} ${APP_ENTRY} ${EXT_MODULES:%=-x %} ${JS_COMPRESS_CMD} > $@
 
 bundle/app.css: ${APP_STYLE_SRCS}
 	@echo "** Bundling all app styles..."
@@ -80,10 +91,16 @@ reload: bundle
 	@curl --silent --show-error "${SSE_URL}/notify?cmd=reload"
 
 # * Distribution
-dist:
-	@echo "Build distribution package: currently do NOTHING!"
+dist: clean bundle
+	@echo "Build distribution package..."
+	@mkdir -pv dist/
+	@cp -rv ${DIST_SRCS} dist/
+
+tarball: dist
+	@echo "Bundling up tarbar..., currently nothing!"
 
 # * Clean
 RM := rm -rfv
 clean:
 	@${RM} bundle/*
+	@${RM} dist/*
