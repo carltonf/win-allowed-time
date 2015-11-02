@@ -8,6 +8,9 @@ an account for the "degraded" new parental control in Windows 10.
 An alpha version is available at [[http://carltonf.github.io/win-allowed-time/][win-allowed-time]]. The main functionality should work.
 
 * todo
+- [ ] update the style to use [[https://github.com/OfficeDev/Office-UI-Fabric][OfficeDev/Office-UI-Fabric]], it's a tool intended
+  for win 10 use anyway.
 - [ ] Modularize Event and listeners part.
 - [ ] Get rid of d3 dependency.
 - [ ] Optionally save user settings to 3rd repo/dropbox.
+- [ ] create a win 10 app using JS/HTML mode.
